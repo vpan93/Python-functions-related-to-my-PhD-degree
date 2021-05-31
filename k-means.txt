@@ -1,0 +1,46 @@
+###  k-means algorithm implemented as it can be found here: https://doi.org/10.1201/9781420034912 ###
+
+import random
+import numpy as np
+import pandas as pd 
+import scipy.spatial
+
+def calc_distance(X1, X2):
+    return(sum((X1 - X2)**2))#**0.5
+
+
+# assign each data point to a centroid
+
+def findClosestCentroids(ic, X):
+    assigned_centroid = []
+    for i in X:
+        distance=[]
+        for j in ic:
+            distance.append(calc_distance(i, j))
+        assigned_centroid.append(np.argmin(distance)) #np.argmin
+    return assigned_centroid
+
+def calc_centroids(clusters, X):
+    new_centroids = []
+    new_df = pd.concat([pd.DataFrame(X), pd.DataFrame(clusters, columns=['cluster'])],
+                      axis=1)
+    for c in set(new_df['cluster']):
+        current_cluster = new_df[new_df['cluster'] == c][new_df.columns[:-1]]
+        cluster_mean = current_cluster.mean(axis=0)
+        new_centroids.append(cluster_mean)
+    return new_centroids
+
+
+def kmeans(data,k):
+    centroids = data[np.random.choice(np.arange(len(data)), k, False)] ## initialise distinct centroids
+    get_centroids = findClosestCentroids(centroids, data) #assign each data point to a centroid
+    while True:
+        new_centroid=np.array(calc_centroids(get_centroids, data))
+        if np.array_equal(centroids, new_centroid) == False:
+            centroids=new_centroid
+            get_centroids = findClosestCentroids(centroids, data)
+            new_centroid=np.array(calc_centroids(get_centroids, data))
+        else:
+            break
+    final_clusters=np.array(findClosestCentroids(new_centroid, data))
+    return final_clusters

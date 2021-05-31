@@ -1,0 +1,41 @@
+### ik means function implemented as it can be found here : https://doi.org/10.1201/9781420034912  ###  
+import math
+
+def anomalous_pattern_final(x):
+    y=np.zeros(x.shape[1])
+    k=[]
+    for i in x:
+        k.append(math.dist(i,y))
+    k=np.array(k)
+    k=np.expand_dims(k, -1)
+    z = np.concatenate((x,k), axis = 1)
+    z_sorted=z[z[:, 4].argsort()]
+    z_final = np.delete(z_sorted,-1,1)
+    tent_centroid=z_final[len(z_final)-1]
+    while True:
+        S=[]
+        for i in x:
+            if math.dist(i,tent_centroid)<math.dist(i,y):
+                S.append(i)
+        c_prime=np.mean(S,axis=0)
+        if np.array_equal(c_prime, tent_centroid) == False:
+            tent_centroid=c_prime
+        else:
+            break
+    return tent_centroid,np.array(S)
+
+def ik_means_final(x,DT):
+    final_centroids=[]
+    number_of_clusters=0
+    while True:
+        S= anomalous_pattern_final(x)[1]
+        c= anomalous_pattern_final(x)[0]
+        number_of_clusters=number_of_clusters+1
+        final_centroids.append(c)
+        if np.array_equal(S,x) == False:
+            x=np.array(list(set(tuple(z) for z in x).difference(tuple(z) for z in S)))
+            if len(x)<DT:
+                break
+        else:
+            break
+    return np.array(final_centroids),number_of_clusters

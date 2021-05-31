@@ -1,0 +1,68 @@
+#### FWSA algorithm implemented from the following paper: https://doi.org/10.1016/j.csda.2008.03.002 ####
+
+def produce_U(data,w,z):
+    u=[]
+    for i in range(data.shape[0]):
+        interim_u=[]
+        for l in range(z.shape[0]):
+            interim_u.append(sum((w[j])*(((data[i][j]-z[l][j]))**2) for j in range(0,data.shape[1])))
+        u.append(interim_u)
+    u=np.array(u)
+    u=(u == u.min(axis=1)[:,None]).astype(int)
+    
+    return u
+
+def produce_z(u,data):
+    z_update=[]
+    for l in range(u.shape[1]):
+        z_update_interim=[]
+        for j in range(data.shape[1]):
+            z_update_interim.append((sum(u[i][l]*data[i][j] for i in range(u.shape[0])))/(sum(u[i][l] for i in range(u.shape[0]))))
+        z_update.append(z_update_interim)
+    return np.array(z_update)
+
+
+def produce_w(u,z,data,w):
+    # calculate g_n
+    g_n=0
+    g_n_list=[]
+    for i in range(u.shape[0]):
+        g_n_list.append((sum(data[i][j] for j in range(u.shape[1])))/u.shape[0])
+        g_n=g_n+(sum(data[i][j] for j in range(u.shape[1])))/u.shape[0]
+    # calculate a_n the correct one
+    a_n=0
+    a_n_list=[]
+    for j in range(data.shape[1]):
+        a_n_list.append(sum(u[i][l] *(data[i][j]-z[l][j])**2 for l in range(u.shape[1]) for i in range(u.shape[0])))
+        a_n=a_n+(sum(u[i][l]*(data[i][j]-z[l][j])**2 for l in range(u.shape[1]) for i in range(u.shape[0])))
+    # calculate b_n the correct one
+    b_n_list=[]
+    for j in range(data.shape[1]):
+        b_n=0
+        for l in range(u.shape[1]):
+            b_n=b_n+len(u[l])*(z[l][j]-g_n_list[j])**2
+        b_n_list.append(b_n)
+    # calculate adjustet margin 
+    adj_margin=[]
+    for i in range(len(a_n_list)):
+        adj_margin.append((b_n_list[i]/a_n_list[i])/sum(b_n_list[n]/  a_n_list[n] for n in range(len(a_n_list))))
+    w_updated=0.5*(np.array(adj_margin)+w)
+    return w_updated
+
+def fwsa(x,k):
+    z = x[np.random.choice(np.arange(len(x)), k, False)] ## initialise distinct centroids
+    number_of_features=x.shape[1]
+    number_of_records=x.shape[0]
+    w=np.ones(number_of_features)/number_of_features
+    u=produce_U(x,w,z)
+    while True:
+        z_updated=produce_z(u,x)
+        w_updated=produce_w(u,z,x,w)
+        u_updated=produce_U(x,w_updated,z_updated)
+        if np.array_equal(u, u_updated) == False:
+            u=u_updated
+            w=w_updated
+            z=z_updated
+        else:
+            break
+    return z_updated,w_updated,u_updated      
